@@ -1,0 +1,5 @@
+spring:
+  application:
+    name: like-service
+kafka:
+  topic: ${KAFKA_TOPIC:like-events}

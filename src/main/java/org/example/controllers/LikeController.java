@@ -1,6 +1,7 @@
 package org.example.controllers;
 
 import org.example.entities.LikeCount;
+import org.example.models.LikeResponse;
 import org.example.services.CounterService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,8 +20,9 @@ public class LikeController {
     }
 
     @GetMapping("/{contentId}")
-    public long getCount(@PathVariable("contentId") String contentId) {
+    public LikeResponse getCount(@PathVariable("contentId") String contentId) {
         Optional<LikeCount> likeCount = counterService.findByContentId(contentId);
-        return likeCount.map(LikeCount::getCount).orElse(0L);
+        long count = likeCount.map(LikeCount::getCount).orElse(0L);
+        return new LikeResponse(contentId, count);
     }
 }

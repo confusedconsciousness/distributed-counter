@@ -3,29 +3,30 @@ services:
     image: apache/kafka:latest
     container_name: kafka
     ports:
-      - "9092:9092"
-      - "9093:9093"
+      - "9092:9092"   # external - for DataGrip (host)
+      - "9093:9093"   # controller
+      - "9094:9094"   # internal - for other Docker containers
     environment:
-      # Enable KRaft (no ZooKeeper) and set controller+broker roles
+      # KRaft mode (no Zookeeper)
       KAFKA_KRAFT_MODE: "true"
       KAFKA_PROCESS_ROLES: "controller,broker"
       KAFKA_NODE_ID: 1
-      # Controller quorum voters: nodeId@host:controllerPort
       KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
-      # Listener configuration
-      KAFKA_LISTENERS: "PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093"
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT"
-      KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
       KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
-      # Advertise the broker as 'kafka:9092' for in-network clients (our app container)
-      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092"
+
+      # Define all listeners
+      KAFKA_LISTENERS: "PLAINTEXT://0.0.0.0:9092,INTERNAL://0.0.0.0:9094,CONTROLLER://0.0.0.0:9093"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://localhost:9092,INTERNAL://kafka:9094"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT"
+
+      # Brokers will talk to each other on INTERNAL
+      KAFKA_INTER_BROKER_LISTENER_NAME: "INTERNAL"
+
       # Storage and cluster settings
       KAFKA_LOG_DIRS: "/var/lib/kafka/data"
-      # For dev, let Kafka auto-create topics
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-      # Cluster ID for KRaft (must be stable for the storage)
       CLUSTER_ID: "Mk3OEYBSD34fcwNTJENDM2Qk"
     volumes:
       - ./kafka-data:/var/lib/kafka/data
@@ -65,7 +66,7 @@ services:
       SPRING_JPA_SHOW_SQL: "false"
       SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: org.hibernate.dialect.MariaDBDialect
 
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9094
       SPRING_KAFKA_PRODUCER_KEY_SERIALIZER: org.apache.kafka.common.serialization.StringSerializer
       SPRING_KAFKA_PRODUCER_VALUE_SERIALIZER: org.springframework.kafka.support.serializer.JsonSerializer
       SPRING_KAFKA_PRODUCER_ACKS: all
